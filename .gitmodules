@@ -1,0 +1,8 @@
+[submodule "source/opencv-3.2.0"]
+	path = source/opencv-3.2.0
+	url = https://gitcode.net/opencv/opencv.git
+	branch = 70bbf17b133496bd7d54d034b0f94bd869e0e810
+[submodule "source/dlib-19.4"]
+	path = source/dlib-19.4
+	url = https://gitee.com/mirrors/dlib.git
+	branch = v19.4
