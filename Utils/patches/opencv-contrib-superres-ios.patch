@@ -1,0 +1,11 @@
+diff --git a/modules/superres/CMakeLists.txt b/modules/superres/CMakeLists.txt
+index 2979ef0..b571e83 100644
+--- a/modules/superres/CMakeLists.txt
++++ b/modules/superres/CMakeLists.txt
+@@ -1,6 +1,3 @@
+-if(IOS OR WINRT)
+-  ocv_module_disable(superres)
+-endif()
+ 
+ set(the_description "Super Resolution")
+ if(HAVE_CUDA)

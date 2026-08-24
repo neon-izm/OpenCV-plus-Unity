@@ -1,0 +1,72 @@
+diff --git a/src/OpenCvSharpExtern/CMakeLists.txt b/src/OpenCvSharpExtern/CMakeLists.txt
+index 4371d2f6..9e47f4e7 100644
+--- a/src/OpenCvSharpExtern/CMakeLists.txt
++++ b/src/OpenCvSharpExtern/CMakeLists.txt
+@@ -1,5 +1,7 @@
+ cmake_minimum_required(VERSION 3.0)
+ 
++option(OPENCVSHARP_BUILD_SHARED "Build OpenCvSharpExtern as a shared library" ON)
++
+ include_directories(${OpenCV_INCLUDE_DIR})
+ IF(!EMSCRIPTEN)
+ 	link_directories(${OpenCV_LIBRARY_DIR} ${OpenCV_LIBRARIES})
+@@ -11,18 +13,25 @@ ENDIF()
+ 
+ file(GLOB OPENCVSHARP_FILES *.cpp)
+ 
+-find_package(OpenCV REQUIRED)
+-
+-# iconv support isn't automatic on some systems
+-if(CMAKE_VERSION VERSION_GREATER "3.11")
+-  find_package(Iconv QUIET)
+-  if(Iconv_FOUND)
+-    ocv_target_link_libraries(${the_module} Iconv::Iconv)
+-  else()
+-    ocv_target_compile_definitions(${the_module} PRIVATE "NO_ICONV=1")
++# Eigen3 is referenced by OpenCV's INTERFACE_LINK_LIBRARIES. Ensure the imported
++# target exists: find_package(Eigen3) may resolve via MODULE mode (CMake's
++# bundled FindEigen3.cmake), which does NOT define the Eigen3::Eigen target.
++find_package(Eigen3 QUIET)
++# Always provide the Eigen3::Eigen target: OpenCV's exported config references it
++# in INTERFACE_LINK_LIBRARIES when OpenCV was built with Eigen, and the extern
++# only links against it (no direct Eigen includes), so an empty interface target
++# is sufficient when Eigen is not installed (e.g. CI runners).
++if(NOT TARGET Eigen3::Eigen)
++  add_library(Eigen3::Eigen INTERFACE IMPORTED)
++  if(EIGEN3_INCLUDE_DIRS)
++    target_include_directories(Eigen3::Eigen INTERFACE ${EIGEN3_INCLUDE_DIRS})
++  elseif(EIGEN3_INCLUDE_DIR)
++    target_include_directories(Eigen3::Eigen INTERFACE ${EIGEN3_INCLUDE_DIR})
+   endif()
+ endif()
+ 
++find_package(OpenCV REQUIRED)
++
+ if(OpenCV_FOUND)
+ 	include_directories(${OpenCV_INCLUDE_DIRS})
+ 	#set(LIBS ${LIBS} ${OpenCV_LIBRARIES})
+@@ -37,9 +46,23 @@ if(OpenCV_FOUND)
+ 	if(EMSCRIPTEN)
+ 		# TODO: replace path
+ 		add_library(OpenCvSharpExtern STATIC ${OPENCVSHARP_FILES} ${WASM_LIB})
+-	else()
++	elseif(OPENCVSHARP_BUILD_SHARED)
+ 		add_library(OpenCvSharpExtern SHARED ${OPENCVSHARP_FILES})
+ 		target_link_libraries(OpenCvSharpExtern ${OpenCV_LIBRARIES})
++	else()
++		add_library(OpenCvSharpExtern STATIC ${OPENCVSHARP_FILES})
++		target_link_libraries(OpenCvSharpExtern ${OpenCV_LIBRARIES})
++		set_target_properties(OpenCvSharpExtern PROPERTIES POSITION_INDEPENDENT_CODE ON)
++	endif()
++
++	# iconv support isn't automatic on some systems
++	if(CMAKE_VERSION VERSION_GREATER "3.11")
++	  find_package(Iconv QUIET)
++	  if(Iconv_FOUND)
++	    target_link_libraries(OpenCvSharpExtern Iconv::Iconv)
++	  else()
++	    target_compile_definitions(OpenCvSharpExtern PRIVATE "NO_ICONV=1")
++	  endif()
+ 	endif()
+ 
+ 	install(TARGETS OpenCvSharpExtern
