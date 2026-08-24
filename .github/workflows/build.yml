@@ -1,0 +1,186 @@
+name: build opencv+unity plugin
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - name: Cache OpenCV build (macos)
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/opencv-macos
+            build/artifacts/macos
+          key: opencv-macos-${{ hashFiles('Utils/build-opencv.sh', 'Utils/opencv_options_unity.cmake', 'Utils/patches/opencv-cmake-min-3.5.patch', 'Utils/patches/opencv-contrib-superres-ios.patch') }}
+          restore-keys: |
+            opencv-macos-
+      - name: Install build deps (Eigen)
+        run: brew install eigen
+      - name: Build macOS (Apple Silicon arm64)
+        run: bash Utils/build.sh macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-macos
+          path: bin/OpenCvSharpExtern-1.0/full/macos
+
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - name: Cache OpenCV build (ios)
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/opencv-ios
+            build/artifacts/ios
+          key: opencv-ios-${{ hashFiles('Utils/build-opencv.sh', 'Utils/opencv_options_unity.cmake', 'Utils/patches/opencv-cmake-min-3.5.patch', 'Utils/patches/opencv-contrib-superres-ios.patch') }}
+          restore-keys: |
+            opencv-ios-
+      - name: Install build deps (Eigen)
+        run: brew install eigen
+      - name: Build iOS (arm64)
+        run: bash Utils/build.sh ios
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-ios
+          path: bin/OpenCvSharpExtern-1.0/full/ios
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - name: Cache OpenCV build (android)
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/opencv-android
+            build/artifacts/android
+          key: opencv-android-${{ hashFiles('Utils/build-opencv.sh', 'Utils/opencv_options_unity.cmake', 'Utils/patches/opencv-cmake-min-3.5.patch', 'Utils/patches/opencv-contrib-superres-ios.patch') }}
+          restore-keys: |
+            opencv-android-
+      - name: Install cmake
+        run: sudo apt-get update && sudo apt-get install -y cmake
+      - id: setup-ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          # NDK 28+ required for Android 15+ 16KB page-size support
+          ndk-version: 28.2.13676358
+          add-to-path: false
+      - name: Build Android (arm64-v8a)
+        env:
+          ANDROID_NDK: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: bash Utils/build.sh android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-android
+          path: bin/OpenCvSharpExtern-1.0/full/android
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - name: Cache OpenCV build (linux)
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/opencv-linux
+            build/artifacts/linux
+          key: opencv-linux-${{ hashFiles('Utils/build-opencv.sh', 'Utils/opencv_options_unity.cmake', 'Utils/patches/opencv-cmake-min-3.5.patch', 'Utils/patches/opencv-contrib-superres-ios.patch') }}
+          restore-keys: |
+            opencv-linux-
+      - name: Install build deps (cmake, eigen)
+        run: sudo apt-get update && sudo apt-get install -y cmake libeigen3-dev
+      - name: Build Linux (x86_64)
+        run: bash Utils/build.sh linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-linux
+          path: bin/OpenCvSharpExtern-1.0/full/linux
+
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - name: Cache OpenCV build (windows)
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/opencv-windows
+            build/artifacts/windows
+          key: opencv-windows-${{ hashFiles('Utils/build-opencv.sh', 'Utils/opencv_options_unity.cmake', 'Utils/patches/opencv-cmake-min-3.5.patch', 'Utils/patches/opencv-contrib-superres-ios.patch') }}
+          restore-keys: |
+            opencv-windows-
+      - name: Set up MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Build Windows (x86_64, tier2)
+        shell: bash
+        run: bash Utils/build.sh windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugin-windows
+          path: bin/OpenCvSharpExtern-1.0/full/windows
+
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [macos, ios, android, linux, windows]
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: true }
+      - name: Download macOS
+        uses: actions/download-artifact@v4
+        with: { name: plugin-macos, path: bin/OpenCvSharpExtern-1.0/full/macos }
+      - name: Download iOS
+        uses: actions/download-artifact@v4
+        with: { name: plugin-ios, path: bin/OpenCvSharpExtern-1.0/full/ios }
+      - name: Download Android
+        uses: actions/download-artifact@v4
+        with: { name: plugin-android, path: bin/OpenCvSharpExtern-1.0/full/android }
+      - name: Download Linux
+        uses: actions/download-artifact@v4
+        with: { name: plugin-linux, path: bin/OpenCvSharpExtern-1.0/full/linux }
+      - name: Download Windows
+        uses: actions/download-artifact@v4
+        with: { name: plugin-windows, path: bin/OpenCvSharpExtern-1.0/full/windows }
+      - name: Package UPM (cs11ify + plugins + templates)
+        run: bash Utils/package-unity.sh 1.0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: opencvplus-unity-upm-package
+          path: Unity/OpenCV+Unity
+
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [package]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - name: Download UPM package
+        uses: actions/download-artifact@v4
+        with:
+          name: opencvplus-unity-upm-package
+          path: Unity/OpenCV+Unity
+      - name: Package tarball
+        run: tar czf "opencvplus-unity-${{ github.ref_name }}.tgz" -C Unity/OpenCV+Unity .
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: opencvplus-unity-${{ github.ref_name }}.tgz
+          generate_release_notes: true

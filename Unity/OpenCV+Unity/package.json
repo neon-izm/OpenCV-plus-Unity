@@ -1,0 +1,14 @@
+{
+  "name": "com.opencvplus.unity",
+  "version": "1.0.0",
+  "displayName": "OpenCV+Unity",
+  "description": "OpenCV 4.11 native plugin for Unity via OpenCvSharp 4.11 (managed wrapper).",
+  "unity": "6000.0",
+  "keywords": [
+    "opencv",
+    "computer-vision",
+    "opencvsharp"
+  ],
+  "license": "Apache-2.0",
+  "dependencies": {}
+}
