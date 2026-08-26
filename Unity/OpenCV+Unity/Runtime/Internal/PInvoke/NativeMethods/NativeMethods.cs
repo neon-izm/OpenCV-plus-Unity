@@ -67,6 +67,8 @@ public static partial class NativeMethods
 
         // Redirect native OpenCV errors into a managed callback so exceptions
         // propagate on every platform (Unity included), not just DOTNETCORE.
+        // Must run after TryPInvoke so the native plugin is resolvable, and must
+        // use ExceptionHandler's IL2CPP-safe static callback (not a lambda).
         ExceptionHandler.RegisterExceptionCallback();
     }
 
@@ -92,11 +94,12 @@ public static partial class NativeMethods
             return;
         }
 
-        if (IsUnix())
+        // Prefer !IsWindows() over IsUnix(): on Unity iOS IL2CPP,
+        // RuntimeInformation.IsOSPlatform(OSX) is false (iOS ≠ OSX), so IsUnix()
+        // wrongly falls through into the Win32 LoadLibrary + redirectError path.
+        // Unity already loads plugins; only Windows needs explicit LoadLibrary.
+        if (!IsWindows())
         {
-#if DOTNETCORE
-            ExceptionHandler.RegisterExceptionCallback();
-#endif
             return;
         }
 
@@ -110,10 +113,9 @@ public static partial class NativeMethods
         //*/
         WindowsLibraryLoader.Instance.LoadLibrary(DllExtern, ap);
 
-        // Redirection of error occurred in native library 
-        var zero = IntPtr.Zero;
-        var current = redirectError(ErrorHandlerThrowException, zero, ref zero);
-        GC.KeepAlive(current);
+        // Error redirection is registered once in the static constructor via
+        // ExceptionHandler (IL2CPP-safe). Do not call redirectError with a
+        // lambda here — that crashes IL2CPP players.
     }
 
     /// <summary>
@@ -226,17 +228,26 @@ public static partial class NativeMethods
     /// <summary>
     /// Custom error handler to be thrown by OpenCV
     /// </summary>
-    public static readonly CvErrorCallback ErrorHandlerThrowException =
-        // ReSharper disable once UnusedParameter.Local
-        (status, funcName, errMsg, fileName, line, userData) => throw new OpenCVException(status, funcName, errMsg, fileName, line);
+    public static readonly CvErrorCallback ErrorHandlerThrowException = ErrorHandlerThrowExceptionImpl;
+
+    [MonoPInvokeCallback(typeof(CvErrorCallback))]
+    private static int ErrorHandlerThrowExceptionImpl(
+        ErrorCode status, string funcName, string errMsg, string fileName, int line, IntPtr userData)
+    {
+        throw new OpenCVException(status, funcName, errMsg, fileName, line);
+    }
 
     /// <summary>
     /// Custom error handler to ignore all OpenCV errors
     /// </summary>
-    // ReSharper disable UnusedParameter.Local
-    public static readonly CvErrorCallback ErrorHandlerIgnorance =
-        (status, funcName, errMsg, fileName, line, userData) => 0;
-    // ReSharper restore UnusedParameter.Local
+    public static readonly CvErrorCallback ErrorHandlerIgnorance = ErrorHandlerIgnoranceImpl;
+
+    [MonoPInvokeCallback(typeof(CvErrorCallback))]
+    private static int ErrorHandlerIgnoranceImpl(
+        ErrorCode status, string funcName, string errMsg, string fileName, int line, IntPtr userData)
+    {
+        return 0;
+    }
 
 #pragma warning disable CA2211
     /// <summary>

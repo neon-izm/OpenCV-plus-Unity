@@ -4,5 +4,9 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/ARMarkerDemo.unity
+    guid: 83bad3aa8759a47dfb2b5f92eb58f44e
   m_configObjects: {}
+  m_UseUCBPForAssetBundles: 0
