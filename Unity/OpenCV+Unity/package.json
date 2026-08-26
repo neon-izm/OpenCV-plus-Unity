@@ -10,5 +10,10 @@
     "opencvsharp"
   ],
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/neon-izm/OpenCV-plus-Unity.git",
+    "directory": "Unity/OpenCV+Unity"
+  },
   "dependencies": {}
 }

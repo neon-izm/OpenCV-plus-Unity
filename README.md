@@ -4,6 +4,8 @@ An OpenCV native plugin for Unity. Built on **OpenCV 4.11**, this project compil
 
 A set of prebuilt native plugins for macOS / iOS / Android / Windows / Linux is built automatically on CI so it can run on real devices.
 
+![AR marker demo on device](docs/ardemo.gif)
+
 ## Background
 
 This project is based on the freely released OpenCV plugin **"OpenCV plus Unity"**.
@@ -76,28 +78,32 @@ bash Utils/package-unity.sh 1.0
 
 ## Using in a Unity project
 
-Reference it as a UPM package (`com.opencvplus.unity`). After cloning this repository, you can reference it from `Packages/manifest.json` using a `file:` relative path:
+### Installation
 
-```jsonc
-// Packages/manifest.json
+1. Open Package Manager from **Window > Package Manager**.
+2. Click the **"+"** button > **Add package from git URL**.
+3. Enter the following URL:
+
+```
+https://github.com/neon-izm/OpenCV-plus-Unity.git?path=/Unity/OpenCV+Unity
+```
+
+Alternatively, open `Packages/manifest.json` and add the following to the dependencies block:
+
+```json
 {
   "dependencies": {
-    "com.opencvplus.unity": "file:<relative path>/Unity/OpenCV+Unity"
+    "com.opencvplus.unity": "https://github.com/neon-izm/OpenCV-plus-Unity.git?path=/Unity/OpenCV+Unity"
   }
 }
 ```
 
-Repository: <https://github.com/neon-izm/OpenCV-plus-Unity>
-
-Alternatively, download the `opencvplus-unity-*.tgz` from a GitHub Release and extract it into `Packages/`.
-
-The consumer side needs the following in `Assets/csc.rsp` (bundled by `package-unity.sh`):
+The consumer project also needs `Assets/csc.rsp`:
 
 ```
 -unsafe
 -langversion:latest
 ```
-
 ## Verification
 
 - A verification Unity project is included under `verify/UnityProject/`.

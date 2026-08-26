@@ -23,7 +23,7 @@ public class ReadOnlyArray2D<T>
     /// <param name="index0"></param>
     /// <param name="index1"></param>
     /// <returns></returns>
-    public ref readonly T this[int index0, int index1] => ref data[index0, index1];
+    public T this[int index0, int index1] => data[index0, index1];
 
     /// <summary>
     /// Gets the total number of elements in all the dimensions of the System.Array.

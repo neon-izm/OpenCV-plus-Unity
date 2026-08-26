@@ -39,6 +39,27 @@ if [[ -d "$SRC_CS" ]]; then
   # Rewrite C# 12 constructs (primary ctors, collection expressions) to C# 11 so
   # the code compiles in Unity (Roslyn caps at C# 11).
   python3 "$ROOT/Utils/cs11ify.py" "$RT"
+  # IL2CPP cannot resolve `ref readonly` returns (T& modreq(InAttribute)) on iOS,
+  # so ReadOnlyArray2D's indexer must return by value for the player build to succeed.
+  python3 - "$RT/Internal/Util/ReadOnlyArray2D.cs" <<'PY'
+import sys
+path = sys.argv[1]
+text = open(path).read()
+text = text.replace(
+    "public ref readonly T this[int index0, int index1] => ref data[index0, index1];",
+    "public T this[int index0, int index1] => data[index0, index1];")
+open(path, "w").write(text)
+PY
+  # Unity / IL2CPP adaptations for native error callbacks and iOS DllImport:
+  # lambdas cannot be marshaled to native under IL2CPP; iOS IsUnix() is unreliable.
+  python3 "$ROOT/Utils/patch-nativemethods-unity.py" \
+    "$RT/Internal/PInvoke/NativeMethods/NativeMethods.cs"
+  # Replace upstream ExceptionHandler (#if DOTNETCORE + anonymous delegate) with the
+  # Unity-ready static MonoPInvokeCallback implementation, and ship the attribute.
+  cp "$ROOT/Utils/unity-template/ExceptionHandler.cs" \
+    "$RT/Internal/PInvoke/ExceptionHandler.cs"
+  cp "$ROOT/Utils/unity-template/MonoPInvokeCallbackAttribute.cs" \
+    "$RT/Internal/PInvoke/MonoPInvokeCallbackAttribute.cs"
   # Unity-specific files that are not present in the upstream OpenCvSharp source:
   #  - GlobalUsings.cs : upstream relies on <ImplicitUsings>enable</ImplicitUsings>,
   #    which Unity's compiler does not accept via csc.rsp (-implicitusings:enable

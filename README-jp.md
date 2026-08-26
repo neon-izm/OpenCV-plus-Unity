@@ -4,6 +4,8 @@ Unity で使える OpenCV ネイティブプラグインです。**OpenCV 4.11**
 
 macOS / iOS / Android / Windows / Linux 向けに、実機でも動くネイティブプラグイン一式を CI で自動ビルドしています。
 
+![実機での AR マーカーデモ](docs/ardemo.gif)
+
 ## 背景・由来
 
 このプロジェクトは、**無料で公開された OpenCV プラグイン「OpenCV plus Unity」** を元にしています。
@@ -76,22 +78,27 @@ bash Utils/package-unity.sh 1.0
 
 ## Unity プロジェクトでの利用
 
-UPM パッケージとして参照します（`com.opencvplus.unity`）。このリポジトリを clone した状態では、以下のように `Packages/manifest.json` で `file:` 相対パスから参照できます:
+### Installation
 
-```jsonc
-// Packages/manifest.json
+1. **Window > Package Manager** を開く
+2. **"+"** ボタン > **Add package from git URL** を選ぶ
+3. 次の URL を入力する:
+
+```
+https://github.com/neon-izm/OpenCV-plus-Unity.git?path=/Unity/OpenCV+Unity
+```
+
+または `Packages/manifest.json` の `dependencies` に追加します:
+
+```json
 {
   "dependencies": {
-    "com.opencvplus.unity": "file:<相対パス>/Unity/OpenCV+Unity"
+    "com.opencvplus.unity": "https://github.com/neon-izm/OpenCV-plus-Unity.git?path=/Unity/OpenCV+Unity"
   }
 }
 ```
 
-リポジトリ: <https://github.com/neon-izm/OpenCV-plus-Unity>
-
-または、GitHub Release の `opencvplus-unity-*.tgz` を解凍して `Packages/` に配置する方法もあります。
-
-利用側は `Assets/csc.rsp` に以下が必要です（`package-unity.sh` が同梱します）:
+利用側は `Assets/csc.rsp` も必要です:
 
 ```
 -unsafe
